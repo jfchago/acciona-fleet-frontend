@@ -104,36 +104,34 @@ export interface components {
         };
         FlotaVivaRow: {
             id?: unknown;
-            PetitionDate?: unknown;
-            DivisionFiscalNumber?: unknown;
-            Sociedad?: unknown;
-            "Nombre Sociedad"?: unknown;
-            Matricula?: unknown;
-            FleetSegmentation?: unknown;
-            Marca?: unknown;
-            Modelo?: unknown;
-            "Descripcion Vehiculo"?: unknown;
-            "Motorizaci\u00F3n"?: unknown;
-            Etiqueta?: unknown;
-            CO2?: unknown;
-            Cuota?: unknown;
-            "Estado Vehiculo"?: unknown;
-            "Fecha Inicio"?: unknown;
-            "Fecha Fin"?: unknown;
-            "Fecha Extension"?: unknown;
-            Proveedor?: unknown;
-            Clasificacion?: unknown;
-            RenewableFuel?: unknown;
-            CostCenter?: unknown;
-            CodeElement?: unknown;
-            DriverName?: unknown;
-            DriverMail?: unknown;
-            DriverAdditionalMail?: unknown;
-            ResponsableVehicle?: unknown;
-            eMailResponsableVehicle?: unknown;
-            Country?: unknown;
-        } & {
-            [key: string]: unknown;
+            petitionDate?: unknown;
+            divisionFiscalNumber?: unknown;
+            sociedad?: unknown;
+            nombreSociedad?: unknown;
+            matricula?: unknown;
+            fleetSegmentation?: unknown;
+            marca?: unknown;
+            modelo?: unknown;
+            descripcionVehiculo?: unknown;
+            motorizacion?: unknown;
+            etiqueta?: unknown;
+            co2?: unknown;
+            cuota?: unknown;
+            estadoVehiculo?: unknown;
+            fechaInicio?: unknown;
+            fechaFin?: unknown;
+            fechaExtension?: unknown;
+            proveedor?: unknown;
+            clasificacion?: unknown;
+            renewableFuel?: unknown;
+            costCenter?: unknown;
+            codeElement?: unknown;
+            driverName?: unknown;
+            driverMail?: unknown;
+            driverAdditionalMail?: unknown;
+            responsableVehicle?: unknown;
+            emailResponsableVehicle?: unknown;
+            country?: unknown;
         };
         Freshness: {
             /** Format: date-time */
@@ -270,6 +268,7 @@ export interface operations {
                     "application/json": components["schemas"]["FlotaVivaPage"];
                 };
             };
+            400: components["responses"]["Problem"];
         };
     };
     exportFlotaViva: {
@@ -296,6 +295,7 @@ export interface operations {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": unknown;
                 };
             };
+            400: components["responses"]["Problem"];
         };
     };
 }
