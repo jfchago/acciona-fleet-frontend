@@ -11,11 +11,11 @@ type Page = {
 };
 
 const fields = [
-  'id', 'PetitionDate', 'DivisionFiscalNumber', 'Sociedad', 'Nombre Sociedad', 'Matricula',
-  'FleetSegmentation', 'Marca', 'Modelo', 'Descripcion Vehiculo', 'Motorización', 'Etiqueta',
-  'CO2', 'Cuota', 'Estado Vehiculo', 'Fecha Inicio', 'Fecha Fin', 'Fecha Extension',
-  'Proveedor', 'Clasificacion', 'RenewableFuel', 'CostCenter', 'CodeElement', 'DriverName',
-  'DriverMail', 'DriverAdditionalMail', 'ResponsableVehicle', 'eMailResponsableVehicle', 'Country',
+  'id', 'petitionDate', 'divisionFiscalNumber', 'sociedad', 'nombreSociedad', 'matricula',
+  'fleetSegmentation', 'marca', 'modelo', 'descripcionVehiculo', 'motorizacion', 'etiqueta',
+  'co2', 'cuota', 'estadoVehiculo', 'fechaInicio', 'fechaFin', 'fechaExtension',
+  'proveedor', 'clasificacion', 'renewableFuel', 'costCenter', 'codeElement', 'driverName',
+  'driverMail', 'driverAdditionalMail', 'responsableVehicle', 'emailResponsableVehicle', 'country',
 ];
 
 export default function FlotaVivaPage() {
@@ -70,9 +70,9 @@ export default function FlotaVivaPage() {
     {error && <section role="alert"><p>La información no está disponible ahora.</p><button onClick={() => void load()}>Reintentar</button></section>}
     {!loading && !error && page && <>
       <p className={styles.freshness}>Datos {page.freshness.status.toLowerCase()} · comprobados {new Date(page.freshness.checkedAt).toLocaleString()}</p>
-      {page.items.length === 0 ? <p role="status">No hay vehículos que coincidan con el filtro.</p> : <div className={styles.tableWrap}><table><thead><tr>{['Matricula', 'Marca', 'Modelo', 'Sociedad', 'Estado Vehiculo'].map(field => <th key={field}>{field}</th>)}</tr></thead><tbody>{page.items.map((row, index) => <tr key={String(row.id ?? row.Matricula ?? index)} onClick={() => setSelected(row)}><td>{String(row.Matricula ?? '')}</td><td>{String(row.Marca ?? '')}</td><td>{String(row.Modelo ?? '')}</td><td>{String(row.Sociedad ?? '')}</td><td>{String(row['Estado Vehiculo'] ?? '')}</td></tr>)}</tbody></table></div>}
+      {page.items.length === 0 ? <p role="status">No hay vehículos que coincidan con el filtro.</p> : <div className={styles.tableWrap}><table><thead><tr>{['Matrícula', 'Marca', 'Modelo', 'Sociedad', 'Estado vehículo'].map(field => <th key={field}>{field}</th>)}</tr></thead><tbody>{page.items.map((row, index) => <tr key={String(row.id ?? row.matricula ?? index)} onClick={() => setSelected(row)}><td>{String(row.matricula ?? '')}</td><td>{String(row.marca ?? '')}</td><td>{String(row.modelo ?? '')}</td><td>{String(row.sociedad ?? '')}</td><td>{String(row.estadoVehiculo ?? '')}</td></tr>)}</tbody></table></div>}
       <nav className={styles.pagination}><button disabled={page.page === 0} onClick={() => setPage({ ...page, page: page.page - 1 })}>Anterior</button><span>Página {page.page + 1} de {Math.max(page.totalPages, 1)} · {page.totalElements} vehículos</span><button disabled={!page.hasNext} onClick={() => setPage({ ...page, page: page.page + 1 })}>Siguiente</button></nav>
     </>}
-    {selected && <aside className={styles.panel}><button onClick={() => setSelected(undefined)} aria-label="Cerrar detalle">×</button><h2>{String(selected.Matricula ?? 'Vehículo')}</h2>{fields.map(field => <p key={field}><strong>{field}:</strong> {String(selected[field] ?? '')}</p>)}</aside>}
+    {selected && <aside className={styles.panel}><button onClick={() => setSelected(undefined)} aria-label="Cerrar detalle">×</button><h2>{String(selected.matricula ?? 'Vehículo')}</h2>{fields.map(field => <p key={field}><strong>{field}:</strong> {String(selected[field] ?? '')}</p>)}</aside>}
   </main>;
 }
