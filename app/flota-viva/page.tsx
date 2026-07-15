@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { components } from '../../src/generated/openapi';
 import { api } from '../../src/lib/api';
+import { downloadFlotaVivaExport, type ExportFormat } from '../../src/lib/export';
 import styles from './styles.module.css';
 
 type Row = components['schemas']['FlotaVivaRow'];
@@ -24,7 +25,10 @@ export default function FlotaVivaPage() {
   const [error, setError] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('csv');
+  const panelRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const lastFocusedElement = useRef<HTMLElement | null>(null);
 
   // The request depends on the current page number, not the page response object.
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
@@ -53,27 +57,12 @@ export default function FlotaVivaPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
-  async function download(format: 'csv' | 'xlsx') {
+  async function download(format: ExportFormat) {
     setExportFormat(format);
     setExporting(true);
     setExportError(false);
     try {
-      const query = new URLSearchParams({ format, country: 'ES', filter });
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080'}/api/v1/flota-viva/export?${query}`,
-        { credentials: 'include' },
-      );
-      if (!response.ok) {
-        setExportError(true);
-        return;
-      }
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `flota-viva.${format}`;
-      link.click();
-      URL.revokeObjectURL(url);
+      await downloadFlotaVivaExport({ format, country: 'ES', filter });
     } catch {
       setExportError(true);
     } finally {
@@ -81,23 +70,71 @@ export default function FlotaVivaPage() {
     }
   }
 
-  return <main className={styles.container}>
-    <header><h1>Flota Viva</h1><p>Consulta operativa de vehículos activos</p></header>
-    <section className={styles.toolbar}>
-      <label htmlFor="filter">Filtrar</label>
-      <input id="filter" value={filter} maxLength={100} onChange={event => { setFilter(event.target.value); setPage(undefined); }} placeholder="Buscar matrícula, sociedad, marca..." />
-      <button onClick={() => { setFilter(''); setPage(undefined); }}>Limpiar</button>
-      <button disabled={exporting} onClick={() => void download('csv')}>CSV</button>
-      <button disabled={exporting} onClick={() => void download('xlsx')}>XLSX</button>
-    </section>
-    {exportError && <section role="alert"><p>No se pudo preparar la exportación.</p><button onClick={() => void download(exportFormat)}>Reintentar exportación</button></section>}
-    {loading && <p role="status">Cargando información…</p>}
-    {error && <section role="alert"><p>La información no está disponible ahora.</p><button onClick={() => void load()}>Reintentar</button></section>}
-    {!loading && !error && page && <>
-      <p className={styles.freshness}>Datos {page.freshness.status.toLowerCase()} · comprobados {new Date(page.freshness.checkedAt).toLocaleString()}</p>
-      {page.items.length === 0 ? <p role="status">No hay vehículos que coincidan con el filtro.</p> : <div className={styles.tableWrap}><table><thead><tr>{['Matrícula', 'Marca', 'Modelo', 'Sociedad', 'Estado vehículo'].map(field => <th key={field}>{field}</th>)}</tr></thead><tbody>{page.items.map((row, index) => <tr key={String(row.id ?? row.matricula ?? index)} role="button" tabIndex={0} onClick={() => setSelected(row)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(row); } }}><td>{String(row.matricula ?? '')}</td><td>{String(row.marca ?? '')}</td><td>{String(row.modelo ?? '')}</td><td>{String(row.sociedad ?? '')}</td><td>{String(row.estadoVehiculo ?? '')}</td></tr>)}</tbody></table></div>}
-      <nav className={styles.pagination}><button disabled={page.page === 0} onClick={() => setPage({ ...page, page: page.page - 1 })}>Anterior</button><span>Página {page.page + 1} de {Math.max(page.totalPages, 1)} · {page.totalElements} vehículos</span><button disabled={!page.hasNext} onClick={() => setPage({ ...page, page: page.page + 1 })}>Siguiente</button></nav>
-    </>}
-    {selected && <aside className={styles.panel}><button onClick={() => setSelected(undefined)} aria-label="Cerrar detalle">×</button><h2>{String(selected.matricula ?? 'Vehículo')}</h2>{fields.map(field => <p key={field}><strong>{field}:</strong> {String(selected[field] ?? '')}</p>)}</aside>}
+  useEffect(() => {
+    if (!selected) return;
+
+    closeButtonRef.current?.focus();
+  }, [selected]);
+
+  function openDetail(row: Row) {
+    lastFocusedElement.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setSelected(row);
+  }
+
+  function closeDetail() {
+    setSelected(undefined);
+    if (lastFocusedElement.current?.isConnected) {
+      lastFocusedElement.current.focus();
+    }
+    lastFocusedElement.current = null;
+  }
+
+  function handlePanelKeyDown(event: React.KeyboardEvent<HTMLElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDetail();
+      return;
+    }
+
+    if (event.key !== 'Tab' || !panelRef.current) return;
+    const focusable = panelRef.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  return <main className={styles.container} aria-labelledby="flota-viva-title">
+    <div inert={selected ? true : undefined}>
+      <header className={styles.intro}>
+        <h1 id="flota-viva-title">Flota Viva</h1>
+        <p>Consulta operativa de vehículos activos</p>
+      </header>
+      <section className={styles.toolbar} aria-label="Filtros y exportación">
+        <div className={styles.filterField}>
+          <label htmlFor="filter">Filtrar</label>
+          <input id="filter" value={filter} maxLength={100} onChange={event => { setFilter(event.target.value); setPage(undefined); }} placeholder="Buscar matrícula, sociedad, marca..." />
+        </div>
+        <button className={styles.button} type="button" onClick={() => { setFilter(''); setPage(undefined); }}>Limpiar</button>
+        <button className={styles.primaryButton} type="button" disabled={exporting} onClick={() => void download('csv')}>CSV</button>
+        <button className={styles.primaryButton} type="button" disabled={exporting} onClick={() => void download('xlsx')}>XLSX</button>
+      </section>
+      {exportError && <section className={`${styles.state} ${styles.errorState}`} role="alert"><p>No se pudo preparar la exportación.</p><button className={styles.button} type="button" onClick={() => void download(exportFormat)}>Reintentar exportación</button></section>}
+      {loading && <p className={styles.state} role="status" aria-live="polite">Cargando información…</p>}
+      {error && <section className={`${styles.state} ${styles.errorState}`} role="alert"><p>La información no está disponible ahora.</p><button className={styles.button} type="button" onClick={() => void load()}>Reintentar</button></section>}
+      {!loading && !error && page && <>
+        <p className={styles.successMeta}>Datos {page.freshness.status.toLowerCase()} · comprobados {new Date(page.freshness.checkedAt).toLocaleString()}</p>
+        {page.items.length === 0 ? <p className={styles.state} role="status">No hay vehículos que coincidan con el filtro.</p> : <div className={styles.tableWrap}><table className={styles.table}><caption className="srOnly">Vehículos activos</caption><thead><tr>{['Matrícula', 'Marca', 'Modelo', 'Sociedad', 'Estado vehículo'].map(field => <th key={field} scope="col">{field}</th>)}</tr></thead><tbody>{page.items.map((row, index) => <tr key={String(row.id ?? row.matricula ?? index)} role="button" tabIndex={0} aria-pressed={selected === row} onClick={() => openDetail(row)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDetail(row); } }}><td>{String(row.matricula ?? '')}</td><td>{String(row.marca ?? '')}</td><td>{String(row.modelo ?? '')}</td><td>{String(row.sociedad ?? '')}</td><td>{String(row.estadoVehiculo ?? '')}</td></tr>)}</tbody></table></div>}
+        <nav className={styles.pagination} aria-label="Paginación de Flota Viva"><button className={styles.button} type="button" disabled={page.page === 0} onClick={() => setPage({ ...page, page: page.page - 1 })}>Anterior</button><span>Página {page.page + 1} de {Math.max(page.totalPages, 1)} · {page.totalElements} vehículos</span><button className={styles.button} type="button" disabled={!page.hasNext} onClick={() => setPage({ ...page, page: page.page + 1 })}>Siguiente</button></nav>
+      </>}
+    </div>
+    {selected && <aside ref={panelRef} className={styles.panel} role="dialog" aria-modal="true" aria-labelledby="vehicle-detail-title" onKeyDown={handlePanelKeyDown}><div className={styles.panelHeader}><h2 id="vehicle-detail-title">{String(selected.matricula ?? 'Vehículo')}</h2><button ref={closeButtonRef} className={styles.closeButton} type="button" onClick={closeDetail} aria-label="Cerrar detalle">×</button></div><dl className={styles.detail}>{fields.map(field => <div className={styles.detailRow} key={field}><dt>{field}</dt><dd>{String(selected[field] ?? '')}</dd></div>)}</dl></aside>}
   </main>;
 }
