@@ -59,5 +59,5 @@ test('keeps the inline save action observable when the PATCH fails', () => {
   assert.match(page, /catch \{/);
   assert.match(page, /No se pudo conectar con el backend/);
   assert.match(page, /finally \{/);
-  assert.match(page, /type="button" className=\{styles\.primary\} onClick=\{\(\) => void save\(\)\}/);
+  assert.match(page, /type="button" className=\{styles\.primary\} onClick=\{\(\) => \{ setFeedback\(\{ kind: 'loading'/);
 });
