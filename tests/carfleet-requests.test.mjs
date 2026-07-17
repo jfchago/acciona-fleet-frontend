@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const page = await readFile(new URL('../app/carfleet-requests/page.tsx', import.meta.url), 'utf8');
+const client = await readFile(new URL('../src/lib/carfleet-requests.ts', import.meta.url), 'utf8');
 const contract = await readFile(new URL('../../../.metacontext/deliverables/contracts/OpenApi.yaml', import.meta.url), 'utf8');
 const css = await readFile(new URL('../app/carfleet-requests/styles.module.css', import.meta.url), 'utf8');
 const columns = ['RegSelecction', 'RenewableFuel', 'PlanMoves', 'PetitionDate', 'SDN', 'PetitionID', 'DivisionName', 'LicencePlate', 'Susti', 'DriverName', 'Directores', 'StateID', 'Classification', 'StartTerm', 'EndTerm', 'CancellationDate', 'CostCenter', 'MonthlyFee', 'Provider', 'Contract', 'FuelType', 'Co2Index', 'EnvironmentalTag', 'UploadFiles', 'Documentation', 'ViewFiles', 'Copy', 'Delete', 'Country'];
@@ -27,7 +28,7 @@ test('keeps selection, row editing and master/detail action contracts', () => {
 test('uses the OpenAPI lifecycle paths and optimistic concurrency header', () => {
   for (const path of ['/api/v1/car-fleet-requests', '/api/v1/car-fleet-requests/{id}/duplicate', '/api/v1/car-fleet-requests/{id}/retire', '/api/v1/car-fleet-requests/{id}/reinstate']) assert.match(contract, new RegExp(path.replaceAll('/', '\\/')));
   assert.match(page, /'If-Match': asIfMatch\(selected.version\)/);
-  assert.match(page, /asIfMatch\(request\.version\)/);
+  assert.match(client, /asIfMatch\(request\.version\)/);
   assert.match(page, /result\.response\.status === 409/);
 });
 
