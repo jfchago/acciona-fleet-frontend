@@ -1,1 +1,5 @@
-body { max-width: 720px; margin: 2rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; }
+:root { --ink: #152126; --muted: #617277; --line: #d8e1df; --green: #008542; --mint: #e9f5ef; --orange: #f5a623; --surface: #fff; --canvas: #f4f7f6; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+button, input, select { font: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 3px solid #f5a623; outline-offset: 2px; }
