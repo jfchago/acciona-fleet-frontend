@@ -53,3 +53,11 @@ test('requests and navigates server-side pages instead of fixing the table to pa
   assert.match(page, /totalElements/);
   assert.match(page, /Paginación de solicitudes/);
 });
+
+test('keeps the inline save action observable when the PATCH fails', () => {
+  assert.match(page, /setFeedback\(\{ kind: 'loading', message: 'Guardando/);
+  assert.match(page, /catch \{/);
+  assert.match(page, /No se pudo conectar con el backend/);
+  assert.match(page, /finally \{/);
+  assert.match(page, /type="button" className=\{styles\.primary\} onClick=\{\(\) => void save\(\)\}/);
+});
