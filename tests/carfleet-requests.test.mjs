@@ -26,7 +26,8 @@ test('keeps selection, row editing and master/detail action contracts', () => {
 
 test('uses the OpenAPI lifecycle paths and optimistic concurrency header', () => {
   for (const path of ['/api/v1/car-fleet-requests', '/api/v1/car-fleet-requests/{id}/duplicate', '/api/v1/car-fleet-requests/{id}/retire', '/api/v1/car-fleet-requests/{id}/reinstate']) assert.match(contract, new RegExp(path.replaceAll('/', '\\/')));
-  assert.match(page, /'If-Match': selected.version/);
+  assert.match(page, /'If-Match': asIfMatch\(selected.version\)/);
+  assert.match(page, /asIfMatch\(request\.version\)/);
   assert.match(page, /result\.response\.status === 409/);
 });
 

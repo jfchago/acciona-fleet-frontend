@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, loadCarFleetRequestMasters, updateRequest, type CarFleetRequestMasters } from '../../src/lib/carfleet-requests';
+import { api, asIfMatch, loadCarFleetRequestMasters, updateRequest, type CarFleetRequestMasters } from '../../src/lib/carfleet-requests';
 import type { components } from '../../src/generated/openapi';
 import styles from './styles.module.css';
 
@@ -140,7 +140,7 @@ export default function CarFleetRequestsPage() {
     setBusy(true);
     const result = name === 'duplicate'
       ? await api.POST('/api/v1/car-fleet-requests/{id}/duplicate', { params: { path: { id: selected.id } } })
-      : await api.POST(`/api/v1/car-fleet-requests/{id}/${name}`, { params: { path: { id: selected.id }, header: { 'If-Match': selected.version } } });
+      : await api.POST(`/api/v1/car-fleet-requests/{id}/${name}`, { params: { path: { id: selected.id }, header: { 'If-Match': asIfMatch(selected.version) } } });
     setBusy(false);
     if (result.error) { setFeedback({ kind: result.response.status === 403 ? 'permission' : result.response.status === 409 ? 'conflict' : 'failure', message: result.response.status === 409 ? 'La operación entró en conflicto; recarga la solicitud.' : result.response.status === 403 ? 'No tienes permiso para ejecutar esta acción.' : 'La operación no se pudo completar.' }); return; }
     setRequests(current => name === 'duplicate' ? [...current, result.data] : current.map(request => request.id === selected.id ? result.data : request));

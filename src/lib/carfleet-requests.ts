@@ -22,6 +22,11 @@ const optionalNumber = (value: unknown) => {
   return Number.isFinite(normalized) ? normalized : undefined;
 };
 
+export const asIfMatch = (version: string) => {
+  const normalized = version.trim();
+  return normalized.startsWith('"') && normalized.endsWith('"') ? normalized : `"${normalized}"`;
+};
+
 export async function loadCarFleetRequestMasters(): Promise<CarFleetRequestMasters> {
   const [statesResult, classificationsResult] = await Promise.all([
     api.GET('/api/v1/car-fleet-requests/states'),
@@ -39,7 +44,7 @@ export async function updateRequest(request: Request): Promise<UpdateResult> {
   let result;
   try {
     result = await api.PATCH('/api/v1/car-fleet-requests/{id}', {
-      params: { path: { id: request.id }, header: { 'If-Match': request.version } },
+      params: { path: { id: request.id }, header: { 'If-Match': asIfMatch(request.version) } },
       body: {
         sdn: optionalText(request.sdn) as string | undefined,
         registration: optionalText(request.registration) as string | undefined,
