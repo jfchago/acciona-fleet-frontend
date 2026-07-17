@@ -115,10 +115,12 @@ export default function CarFleetRequestsPage() {
   };
   const changeField = (field: keyof Request, value: string | number | boolean | null) => setDraft(current => current ? { ...current, [field]: value } : current);
   const save = async () => {
-    if (!draft || editingId === null) { setFeedback({ kind: 'failure', message: 'No hay una fila en edición para guardar.' }); return; }
+    if (!draft || editingId === null) { setFeedback({ kind: 'validation', message: 'Selecciona una fila y entra en modo edición antes de guardar.' }); return; }
     const sdn = String(draft.sdn ?? '').trim();
     const registration = String(draft.registration ?? '').trim();
-    if (!sdn || !registration) { setFeedback({ kind: 'validation', message: 'SDN y matrícula son obligatorios antes de guardar.' }); return; }
+    if (!sdn && !registration) { setFeedback({ kind: 'validation', message: 'No se puede guardar: SDN y matrícula son obligatorios.' }); return; }
+    if (!sdn) { setFeedback({ kind: 'validation', message: 'No se puede guardar: el campo SDN es obligatorio.' }); return; }
+    if (!registration) { setFeedback({ kind: 'validation', message: 'No se puede guardar: la matrícula es obligatoria.' }); return; }
     setBusy(true);
     setFeedback({ kind: 'loading', message: 'Guardando cambios…' });
     try {
