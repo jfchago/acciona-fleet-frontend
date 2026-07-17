@@ -66,6 +66,9 @@ export async function updateRequest(request: Request): Promise<UpdateResult> {
   if (!result.error) return { kind: 'success', item: result.data.item };
   if (result.response.status === 409) return { kind: 'conflict', message: 'conflict' };
   if (result.response.status === 403) return { kind: 'permission', message: 'permission' };
-  const problem = result.error as { detail?: string; title?: string };
-  return { kind: 'failure', message: problem.detail ?? problem.title ?? `El backend rechazó la solicitud (${result.response.status}).` };
+  const problem = result.error as { detail?: string; title?: string; errors?: Array<{ field?: string; message?: string }> };
+  const violations = Array.isArray(problem.errors)
+    ? problem.errors.map(error => [error.field, error.message].filter(Boolean).join(': ')).filter(Boolean).join(' · ')
+    : '';
+  return { kind: 'failure', message: violations || problem.detail || problem.title || `El backend rechazó la solicitud (${result.response.status}).` };
 }
