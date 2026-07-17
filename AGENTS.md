@@ -36,6 +36,11 @@ Mantener la lógica de acceso a API en `src/lib` y no dispersar llamadas `fetch`
 9. No introducir librerías de UI, estado o red sin justificar su necesidad y compatibilidad con Next.js 16/React 19. Preferir las dependencias ya aprobadas.
 10. Mantener cambios de estilos localizados, nombres claros y diseño responsive. No ocultar errores mediante `eslint-disable` o casts globales.
 
+## Flujo de ramas
+
+- Antes de crear una rama de feature, actualizar las referencias remotas y crearla desde el estado más reciente de la rama remota `origin/main`. No utilizar un `main` local que pueda estar desactualizado.
+- Como comprobación mínima, ejecutar `git fetch origin main` y crear la rama a partir de `origin/main`.
+
 ## Pruebas y calidad
 
 - Ejecutar `npm run typecheck` en cada cambio TypeScript.

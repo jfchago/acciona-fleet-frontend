@@ -26,6 +26,8 @@
   --content-max-width: 80rem;
   --font-sans: Arial, Helvetica, sans-serif;
 }
+button, input, select { font: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 3px solid #f5a623; outline-offset: 2px; }
 
 * { box-sizing: border-box; }
 

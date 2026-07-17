@@ -84,6 +84,118 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/car-fleet-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCarFleetRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/car-fleet-requests/states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCarFleetRequestStates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/car-fleet-requests/vehicle-classifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCarFleetRequestVehicleClassifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/car-fleet-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCarFleetRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateCarFleetRequest"];
+        trace?: never;
+    };
+    "/api/v1/car-fleet-requests/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["retireCarFleetRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/car-fleet-requests/{id}/reinstate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reinstateCarFleetRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/car-fleet-requests/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["duplicateCarFleetRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -148,6 +260,105 @@ export interface components {
             hasNext: boolean;
             freshness: components["schemas"]["Freshness"];
         };
+        CarFleetRequestPatch: {
+            sdn?: string;
+            registration?: string;
+            /** Format: date */
+            contractStart?: string;
+            state?: number;
+            /** Format: date */
+            cancellationDate?: string;
+            contractTerm?: number;
+            /** @description Exactly four digits */
+            cardLastFourDigits?: string;
+            /** @enum {string} */
+            creditCardRequested?: "A" | "B";
+            /** Format: date */
+            creditCardExpirationDate?: string;
+            codeElement?: string;
+            interiorRegime?: string;
+            monthlyFee?: number;
+            regSelection?: number;
+            regSelectionUser?: string;
+            costCenter?: string;
+            viaTCard?: string;
+            /** @enum {string} */
+            viaTCardRequested?: "A" | "B";
+            vehicleClassification?: string;
+            /**
+             * @description Legacy Access boolean; -1 means true and 0 means false
+             * @enum {integer|null}
+             */
+            planMoves?: -1 | 0 | null;
+            /**
+             * @description Legacy Access boolean; -1 means true and 0 means false
+             * @enum {integer|null}
+             */
+            renewableFuel?: -1 | 0 | null;
+        };
+        CarFleetRequest: {
+            /** Format: int64 */
+            id: number;
+            /** @description Legacy V_CarFleet.PetitionID display value */
+            petitionId?: string | null;
+            sdn?: string;
+            registration?: string;
+            divisionName?: string | null;
+            /** Format: date */
+            contractStart?: string;
+            state?: number | null;
+            /** Format: date */
+            cancellationDate?: string | null;
+            contractTerm?: number | null;
+            /** Format: date */
+            contractEndDate?: string | null;
+            cardLastFourDigits?: string | null;
+            retired?: boolean;
+            version: string;
+            /** Format: date */
+            updatedAt?: string | null;
+            costCenter?: string | null;
+            viaTCard?: string | null;
+            viaTCardRequested?: string | null;
+            regSelection?: number | null;
+            regSelectionUser?: string | null;
+            substitutionVehicle?: string | null;
+            driverName?: string | null;
+            director?: string | null;
+            stateCode?: string | null;
+            stateDescription?: string | null;
+            monthlyFee?: number | null;
+            contract?: string | null;
+            provider?: string | null;
+            vehicleClassification?: string | null;
+            fuelType?: string | null;
+            co2Index?: number | null;
+            environmentalTag?: string | null;
+            documentation?: number | null;
+            planMoves?: number | null;
+            renewableFuel?: number | null;
+            country?: string | null;
+        };
+        CarFleetRequestState: {
+            id: number;
+            code: string;
+            description: string;
+        };
+        CarFleetRequestVehicleClassification: {
+            id: number;
+            name: string;
+        };
+        CarFleetRequestPage: {
+            items: components["schemas"]["CarFleetRequest"][];
+            page: number;
+            size: number;
+            /** Format: int64 */
+            totalElements: number;
+        };
+        CarFleetUpdateResponse: {
+            item: components["schemas"]["CarFleetRequest"];
+            warnings: string[];
+        };
         ProblemDetail: {
             /** Format: uri */
             type?: string;
@@ -169,9 +380,20 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        CarFleetId: number;
+        CarFleetVisibility: "ACTIVE" | "ALL";
+        CarFleetPage: number;
+        CarFleetSize: number;
+        CarFleetFilter: string;
+        /** @description ETag returned by GET */
+        CarFleetIfMatch: string;
+    };
     requestBodies: never;
-    headers: never;
+    headers: {
+        /** @description Version used for optimistic concurrency */
+        ETag: string;
+    };
     pathItems: never;
 }
 export type $defs = Record<string, never>;
@@ -296,6 +518,211 @@ export interface operations {
                 };
             };
             400: components["responses"]["Problem"];
+        };
+    };
+    listCarFleetRequests: {
+        parameters: {
+            query?: {
+                visibility?: components["parameters"]["CarFleetVisibility"];
+                page?: components["parameters"]["CarFleetPage"];
+                size?: components["parameters"]["CarFleetSize"];
+                filter?: components["parameters"]["CarFleetFilter"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CarFleet requests page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequestPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+        };
+    };
+    listCarFleetRequestStates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Legacy State catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequestState"][];
+                };
+            };
+        };
+    };
+    listCarFleetRequestVehicleClassifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Spanish legacy vehicle classification catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequestVehicleClassification"][];
+                };
+            };
+        };
+    };
+    getCarFleetRequest: {
+        parameters: {
+            query?: {
+                visibility?: components["parameters"]["CarFleetVisibility"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["CarFleetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CarFleet request */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequest"];
+                };
+            };
+            404: components["responses"]["Problem"];
+        };
+    };
+    updateCarFleetRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag returned by GET */
+                "If-Match": components["parameters"]["CarFleetIfMatch"];
+            };
+            path: {
+                id: components["parameters"]["CarFleetId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CarFleetRequestPatch"];
+            };
+        };
+        responses: {
+            /** @description Updated CarFleet request */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetUpdateResponse"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    retireCarFleetRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag returned by GET */
+                "If-Match": components["parameters"]["CarFleetIfMatch"];
+            };
+            path: {
+                id: components["parameters"]["CarFleetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Retired CarFleet request */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequest"];
+                };
+            };
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    reinstateCarFleetRequest: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag returned by GET */
+                "If-Match": components["parameters"]["CarFleetIfMatch"];
+            };
+            path: {
+                id: components["parameters"]["CarFleetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reinstated CarFleet request */
+            200: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequest"];
+                };
+            };
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    duplicateCarFleetRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["CarFleetId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Duplicated CarFleet request */
+            201: {
+                headers: {
+                    ETag: components["headers"]["ETag"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequest"];
+                };
+            };
+            404: components["responses"]["Problem"];
         };
     };
 }
