@@ -100,6 +100,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/car-fleet-requests/states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCarFleetRequestStates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/car-fleet-requests/vehicle-classifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCarFleetRequestVehicleClassifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/car-fleet-requests/{id}": {
         parameters: {
             query?: never;
@@ -252,12 +284,16 @@ export interface components {
             viaTCard?: string;
             /** @enum {string} */
             viaTCardRequested?: "A" | "B";
+            vehicleClassification?: string;
         };
         CarFleetRequest: {
             /** Format: int64 */
             id: number;
+            /** @description Legacy V_CarFleet.PetitionID display value */
+            petitionId?: string | null;
             sdn?: string;
             registration?: string;
+            divisionName?: string | null;
             /** Format: date */
             contractStart?: string;
             state?: number | null;
@@ -276,6 +312,31 @@ export interface components {
             viaTCardRequested?: string | null;
             regSelection?: number | null;
             regSelectionUser?: string | null;
+            substitutionVehicle?: string | null;
+            driverName?: string | null;
+            director?: string | null;
+            stateCode?: string | null;
+            stateDescription?: string | null;
+            monthlyFee?: number | null;
+            contract?: string | null;
+            provider?: string | null;
+            vehicleClassification?: string | null;
+            fuelType?: string | null;
+            co2Index?: number | null;
+            environmentalTag?: string | null;
+            documentation?: number | null;
+            planMoves?: number | null;
+            renewableFuel?: number | null;
+            country?: string | null;
+        };
+        CarFleetRequestState: {
+            id: number;
+            code: string;
+            description: string;
+        };
+        CarFleetRequestVehicleClassification: {
+            id: number;
+            name: string;
         };
         CarFleetRequestPage: {
             items: components["schemas"]["CarFleetRequest"][];
@@ -473,6 +534,46 @@ export interface operations {
                 };
             };
             400: components["responses"]["Problem"];
+        };
+    };
+    listCarFleetRequestStates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Legacy State catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequestState"][];
+                };
+            };
+        };
+    };
+    listCarFleetRequestVehicleClassifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Spanish legacy vehicle classification catalog */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CarFleetRequestVehicleClassification"][];
+                };
+            };
         };
     };
     getCarFleetRequest: {

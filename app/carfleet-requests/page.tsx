@@ -1,9 +1,9 @@
 'use client';
 
 import { ChangeEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, updateRequest } from '../../src/lib/carfleet-requests';
+import { api, loadCarFleetRequestMasters, updateRequest, type CarFleetRequestMasters } from '../../src/lib/carfleet-requests';
 import type { components } from '../../src/generated/openapi';
-import styles from './requests.module.css';
+import styles from './styles.module.css';
 
 type Request = components['schemas']['CarFleetRequest'];
 type EditableRequest = Request & Record<string, unknown>;
@@ -11,9 +11,21 @@ type Feedback = { kind: 'loading' | 'empty' | 'validation' | 'conflict' | 'permi
 
 export const LEGACY_COLUMNS = [
   'RegSelecction', 'RenewableFuel', 'PlanMoves', 'PetitionDate', 'SDN', 'PetitionID', 'DivisionName', 'LicencePlate',
-  'Susti', 'DriverName', 'Directores', 'StateID', 'StartTerm', 'EndTerm', 'CancellationDate', 'CostCenter',
-  'MonthlyFee', 'Provider', 'Contract', 'FuelType', 'Co2Index', 'EnvironmentalTag', 'Documentation', 'Country',
+  'Susti', 'DriverName', 'Directores', 'StateID', 'Classification', 'StartTerm', 'EndTerm', 'CancellationDate', 'CostCenter',
+  'MonthlyFee', 'Provider', 'Contract', 'FuelType', 'Co2Index', 'EnvironmentalTag', 'UploadFiles', 'Documentation',
+  'ViewFiles', 'Copy', 'Delete', 'Country',
 ] as const;
+
+const LEGACY_COLUMN_LABELS: Record<typeof LEGACY_COLUMNS[number], string> = {
+  RegSelecction: 'Inc', RenewableFuel: 'CR', PlanMoves: 'PM', PetitionDate: 'Fecha', SDN: 'SDN', PetitionID: 'Solicitud',
+  DivisionName: 'Sociedad', LicencePlate: 'Matrícula', Susti: 'Sustitución', DriverName: 'Conductor Asignado', Directores: 'D',
+  StateID: 'Estado', Classification: 'Clasificación', StartTerm: 'Inicio Contrato', EndTerm: 'Fin Contrato',
+  CancellationDate: 'Fecha Baja', CostCenter: 'Centro de Coste', MonthlyFee: 'Cuota', Provider: 'Proveedor', Contract: 'Contrato',
+  FuelType: 'Motor', Co2Index: 'CO2', EnvironmentalTag: 'Etiqueta Medioambiental', UploadFiles: 'Cargar Ficheros',
+  Documentation: 'Documentación', ViewFiles: 'Ver Ficheros', Copy: 'Copiar', Delete: 'Eliminar', Country: 'País',
+};
+
+type LegacyColumn = typeof LEGACY_COLUMNS[number];
 
 const SAMPLE_REQUESTS: Request[] = [
   { id: 12041, sdn: 'SDN-24018', registration: '1234-LMN', contractStart: '2026-01-15', state: 2, cancellationDate: null, contractTerm: 36, contractEndDate: '2028-12-31', cardLastFourDigits: '1842', retired: false, version: '"12041-v3"', updatedAt: '2026-07-16', costCenter: 'CC-4102', viaTCard: 'NO', viaTCardRequested: 'B', regSelection: 1, regSelectionUser: 'mlopez' },
@@ -21,22 +33,33 @@ const SAMPLE_REQUESTS: Request[] = [
   { id: 12043, sdn: 'SDN-24020', registration: '9012-TUV', contractStart: '2025-11-20', state: 3, cancellationDate: '2026-06-02', contractTerm: 12, contractEndDate: '2026-10-31', cardLastFourDigits: null, retired: true, version: '"12043-v7"', updatedAt: '2026-07-10', costCenter: 'CC-4110', viaTCard: null, viaTCardRequested: null, regSelection: 1, regSelectionUser: 'jruiz' },
 ];
 
-const displayValue = (request: Request, column: string): string | number | boolean => {
-  const values: Record<string, string | number | boolean | null | undefined> = {
-    RegSelecction: request.regSelection ?? '', RenewableFuel: '—', PlanMoves: '—', PetitionDate: request.updatedAt ?? '', SDN: request.sdn,
-    PetitionID: request.id, DivisionName: '—', LicencePlate: request.registration, Susti: request.retired, DriverName: '—', Directores: '—',
-    StateID: request.state ?? '', StartTerm: request.contractStart, EndTerm: request.contractEndDate ?? '', CancellationDate: request.cancellationDate ?? '',
-    CostCenter: request.costCenter ?? '', MonthlyFee: request.contractTerm ?? '', Provider: '—', Contract: request.contractTerm ?? '', FuelType: request.viaTCard ?? '',
-    Co2Index: '—', EnvironmentalTag: '—', Documentation: '—', Country: 'ES',
+const displayValue = (request: Request, column: LegacyColumn): string | number | boolean => {
+  const values: Record<LegacyColumn, string | number | boolean | null | undefined> = {
+    RegSelecction: request.regSelection ?? '', RenewableFuel: request.renewableFuel ?? '', PlanMoves: request.planMoves ?? '', PetitionDate: request.updatedAt ?? '', SDN: request.sdn,
+    PetitionID: request.petitionId ?? '', DivisionName: request.divisionName ?? '', LicencePlate: request.registration, Susti: request.substitutionVehicle ?? '', DriverName: request.driverName ?? '', Directores: request.director ?? '',
+    StateID: request.stateCode ?? request.state ?? '', Classification: request.vehicleClassification ?? '', StartTerm: request.contractStart, EndTerm: request.contractEndDate ?? '', CancellationDate: request.cancellationDate ?? '',
+    CostCenter: request.costCenter ?? '', MonthlyFee: request.monthlyFee ?? '', Provider: request.provider ?? '', Contract: request.contract ?? '', FuelType: request.fuelType ?? '',
+    Co2Index: request.co2Index ?? '', EnvironmentalTag: request.environmentalTag ?? '', UploadFiles: '', Documentation: request.documentation ?? '', ViewFiles: '', Copy: '', Delete: '', Country: request.country ?? '',
   };
   return values[column] ?? '';
 };
 
-const editableField = (column: string): keyof Request | undefined => ({
-  RegSelecction: 'regSelection', PetitionDate: 'updatedAt', SDN: 'sdn', PetitionID: 'id', LicencePlate: 'registration', Susti: 'retired',
-  StateID: 'state', StartTerm: 'contractStart', EndTerm: 'contractEndDate', CancellationDate: 'cancellationDate', CostCenter: 'costCenter',
-  MonthlyFee: 'contractTerm', Contract: 'contractTerm', FuelType: 'viaTCard',
-}[column] as keyof Request | undefined);
+const EDITABLE_FIELDS: Partial<Record<LegacyColumn, keyof Request>> = {
+  RegSelecction: 'regSelection', PetitionDate: 'updatedAt', SDN: 'sdn', LicencePlate: 'registration',
+  StateID: 'state', Classification: 'vehicleClassification', StartTerm: 'contractStart', EndTerm: 'contractEndDate', CancellationDate: 'cancellationDate', CostCenter: 'costCenter',
+  MonthlyFee: 'monthlyFee',
+};
+
+const editableField = (column: LegacyColumn): keyof Request | undefined => EDITABLE_FIELDS[column];
+
+const isChecked = (value: string | number | boolean) => value === true || value === 1 || value === '1' || value === 'true';
+
+const stateLabel = (request: Request, masters: CarFleetRequestMasters | null) => {
+  const state = masters?.states.find(option => option.id === request.state);
+  const code = request.stateCode ?? state?.code ?? '';
+  const description = request.stateDescription ?? state?.description ?? '';
+  return [code, description].filter(Boolean).join(' · ') || request.state?.toString() || '';
+};
 
 function FeedbackBanner({ feedback }: { feedback: Feedback }) {
   if (!feedback) return null;
@@ -52,6 +75,7 @@ export default function CarFleetRequestsPage() {
   const [draft, setDraft] = useState<EditableRequest | null>(null);
   const [feedback, setFeedback] = useState<Feedback>({ kind: 'loading', message: 'Cargando solicitudes activas…' });
   const [busy, setBusy] = useState(false);
+  const [masters, setMasters] = useState<CarFleetRequestMasters | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
   const loadRequests = useCallback(async () => {
@@ -65,6 +89,10 @@ export default function CarFleetRequestsPage() {
     setSelectedId(current => result.data.items.some(item => item.id === current) ? current : (result.data.items[0]?.id ?? null));
     setFeedback(result.data.items.length ? null : { kind: 'empty', message: 'No hay solicitudes para este filtro. Prueba con “Todos” o limpia la búsqueda.' });
   }, [filter, visibility]);
+
+  useEffect(() => {
+    void loadCarFleetRequestMasters().then(setMasters).catch(() => setFeedback({ kind: 'failure', message: 'No se pudieron cargar los maestros de estado y clasificación.' }));
+  }, []);
 
   useEffect(() => { const timer = window.setTimeout(() => { void loadRequests(); }, 0); return () => window.clearTimeout(timer); }, [loadRequests]);
 
@@ -103,16 +131,18 @@ export default function CarFleetRequestsPage() {
     setSelectedId(result.data.id); setFeedback({ kind: 'success', message: name === 'duplicate' ? 'Solicitud duplicada.' : `Solicitud ${name === 'retire' ? 'retirada' : 'reinstaurada'}.` });
   };
 
-  const renderCell = (request: Request, column: string) => {
+  const renderCell = (request: Request, column: LegacyColumn) => {
     const field = editableField(column);
-    const value = draft && editingId === request.id && field ? draft[field] : displayValue(request, column);
+    const value = draft && editingId === request.id && field ? draft[field] : column === 'StateID' ? stateLabel(request, masters) : displayValue(request, column);
     if (editingId !== request.id || !field) {
-      return column === 'RegSelecction' || column === 'Susti' ? <input aria-label={`${column} ${request.id}`} type="checkbox" checked={Boolean(value)} readOnly /> : <span>{String(value)}</span>;
+      return column === 'RegSelecction' || column === 'RenewableFuel' || column === 'PlanMoves' || column === 'Documentation'
+        ? <input aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} type="checkbox" checked={isChecked(value ?? '')} readOnly />
+        : <span>{String(value)}</span>;
     }
-    if (column === 'Susti') return <input aria-label={`${column} ${request.id}`} type="checkbox" checked={Boolean(value)} onChange={event => changeField(field, event.target.checked)} />;
-    if (column === 'StateID') return <select aria-label={`${column} ${request.id}`} value={String(value ?? '')} onChange={event => changeField(field, Number(event.target.value))}><option value="">—</option><option value="1">1 · Pendiente</option><option value="2">2 · En curso</option><option value="3">3 · Cerrada</option></select>;
+    if (column === 'StateID') return <select aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} value={String(draft?.state ?? '')} disabled={!masters?.states.length} onChange={event => changeField(field, event.target.value ? Number(event.target.value) : null)}><option value="">—</option>{masters?.states.map(option => <option key={option.id} value={option.id}>{option.code} · {option.description}</option>)}</select>;
+    if (column === 'Classification') return <select aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} value={String(draft?.vehicleClassification ?? '')} disabled={!masters?.classifications.length} onChange={event => changeField(field, event.target.value || null)}><option value="">—</option>{masters?.classifications.map(option => <option key={option.id} value={option.value}>{option.value}</option>)}</select>;
     const inputType = column.includes('Date') || column.includes('Term') ? 'date' : 'text';
-    return <input aria-label={`${column} ${request.id}`} type={inputType} value={String(value ?? '')} onChange={(event: ChangeEvent<HTMLInputElement>) => changeField(field, event.target.value)} />;
+    return <input aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} type={inputType} value={String(value ?? '')} onChange={(event: ChangeEvent<HTMLInputElement>) => changeField(field, event.target.value)} />;
   };
 
   return <main className={styles.page}>
@@ -120,8 +150,8 @@ export default function CarFleetRequestsPage() {
     <section className={styles.toolbar} aria-label="Filtros y acciones maestras"><div className={styles.tabs} role="tablist" aria-label="Visibilidad"><button role="tab" aria-selected={visibility === 'ACTIVE'} className={visibility === 'ACTIVE' ? styles.activeTab : ''} onClick={() => setVisibility('ACTIVE')}>Activas</button><button role="tab" aria-selected={visibility === 'ALL'} className={visibility === 'ALL' ? styles.activeTab : ''} onClick={() => setVisibility('ALL')}>Todas</button></div><label className={styles.search}>Buscar <input value={filter} maxLength={100} onChange={event => setFilter(event.target.value)} placeholder="SDN, matrícula o centro de coste" /></label><button className={styles.secondary} onClick={() => void loadRequests()}>Recargar</button></section>
     <FeedbackBanner feedback={feedback} />
     <section className={styles.workspace}>
-      <div className={styles.tablePanel}><div className={styles.panelHeading}><div><h2>Listado legacy</h2><p>{filteredRequests.length} solicitudes · desplazamiento horizontal disponible</p></div><button className={styles.primary} onClick={() => selected && beginEdit(selected)} disabled={!selected}>Editar seleccionada</button></div><div className={styles.tableScroller} ref={tableRef} tabIndex={0} aria-label="Tabla de 24 columnas, usa Mayús más rueda para desplazarte horizontalmente"><table><thead><tr>{LEGACY_COLUMNS.map(column => <th key={column} scope="col">{column}</th>)}</tr></thead><tbody>{filteredRequests.map(request => <tr key={request.id} className={selectedId === request.id ? styles.selectedRow : ''} tabIndex={0} aria-selected={selectedId === request.id} onClick={() => selectRow(request.id)} onDoubleClick={() => beginEdit(request)} onKeyDown={event => onRowKeyDown(event, request)}>{LEGACY_COLUMNS.map(column => <td key={column}>{renderCell(request, column)}</td>)}</tr>)}</tbody></table></div>{editingId !== null && <div className={styles.editBar} role="group" aria-label="Controles de edición"><span>Editar fila {editingId} · los cambios siguen sin guardar</span><div><button className={styles.secondary} onClick={cancel} disabled={busy}>Cancelar</button><button className={styles.primary} onClick={() => void save()} disabled={busy}>{busy ? 'Guardando…' : 'Guardar cambios'}</button></div></div>}</div>
-      <aside className={styles.detail} aria-label="Detalle de solicitud"><div className={styles.panelHeading}><div><h2>Detalle</h2><p>{selected ? `Petición #${selected.id}` : 'Selecciona una fila'}</p></div></div>{selected ? <><dl>{[['SDN', selected.sdn], ['Matrícula', selected.registration], ['Estado', selected.state ?? '—'], ['Inicio', selected.contractStart], ['Fin', selected.contractEndDate ?? '—'], ['Versión', selected.version]].map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{String(value)}</dd></div>)}</dl><div className={styles.detailActions}><p>Acciones de solicitud</p><button onClick={() => void action('retire')} disabled={busy || selected.retired}>Retirar</button><button onClick={() => void action('reinstate')} disabled={busy || !selected.retired}>Reinstaurar</button><button onClick={() => void action('duplicate')} disabled={busy}>Duplicar</button></div></> : <p className={styles.muted}>El detalle mantiene el contexto de la fila seleccionada.</p>}</aside>
+      <div className={styles.tablePanel}><div className={styles.panelHeading}><div><h2>Listado legacy</h2><p>{filteredRequests.length} solicitudes · desplazamiento horizontal disponible</p></div><button className={styles.primary} onClick={() => selected && beginEdit(selected)} disabled={!selected}>Editar seleccionada</button></div><div className={styles.tableScroller} ref={tableRef} tabIndex={0} aria-label="Tabla legacy de 29 columnas, usa Mayús más rueda para desplazarte horizontalmente"><table><thead><tr>{LEGACY_COLUMNS.map(column => <th key={column} scope="col">{LEGACY_COLUMN_LABELS[column]}</th>)}</tr></thead><tbody>{filteredRequests.map(request => <tr key={request.id} className={selectedId === request.id ? styles.selectedRow : ''} tabIndex={0} aria-selected={selectedId === request.id} onClick={() => selectRow(request.id)} onDoubleClick={() => beginEdit(request)} onKeyDown={event => onRowKeyDown(event, request)}>{LEGACY_COLUMNS.map(column => <td key={column}>{renderCell(request, column)}</td>)}</tr>)}</tbody></table></div>{editingId !== null && <div className={styles.editBar} role="group" aria-label="Controles de edición"><span>Editar fila {editingId} · los cambios siguen sin guardar</span><div><button className={styles.secondary} onClick={cancel} disabled={busy}>Cancelar</button><button className={styles.primary} onClick={() => void save()} disabled={busy}>{busy ? 'Guardando…' : 'Guardar cambios'}</button></div></div>}</div>
+      <aside className={styles.detail} aria-label="Detalle de solicitud"><div className={styles.panelHeading}><div><h2>Detalle</h2><p>{selected ? (selected.petitionId ?? `Petición #${selected.id}`) : 'Selecciona una fila'}</p></div></div>{selected ? <><dl>{[['SDN', selected.sdn], ['Matrícula', selected.registration], ['Estado', selected.stateCode ?? selected.state ?? '—'], ['Inicio', selected.contractStart], ['Fin', selected.contractEndDate ?? '—'], ['Versión', selected.version]].map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{String(value)}</dd></div>)}</dl><div className={styles.detailActions}><p>Acciones de solicitud</p><button onClick={() => void action('retire')} disabled={busy || selected.retired}>Retirar</button><button onClick={() => void action('reinstate')} disabled={busy || !selected.retired}>Reinstaurar</button><button onClick={() => void action('duplicate')} disabled={busy}>Duplicar</button></div></> : <p className={styles.muted}>El detalle mantiene el contexto de la fila seleccionada.</p>}</aside>
     </section>
     <p className={styles.srOnly} aria-live="polite">{editingId ? `Editando la fila ${editingId}` : selected ? `Fila ${selected.id} seleccionada` : 'Ninguna fila seleccionada'}</p>
   </main>;
