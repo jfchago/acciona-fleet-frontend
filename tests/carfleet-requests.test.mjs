@@ -41,7 +41,7 @@ test('loads legacy State and Spanish VehicleClasification catalogs for inline co
 });
 
 test('exposes recovery feedback and responsive/accessibility contracts', () => {
-  for (const text of ['Cargando solicitudes', 'No hay solicitudes', 'No se pudo guardar', 'conflicto', 'No tienes permiso', 'guardada correctamente']) assert.match(page, new RegExp(text));
+  for (const text of ['Cargando solicitudes', 'No hay solicitudes', 'No se pudo conectar', 'conflicto', 'No tienes permiso', 'guardada correctamente']) assert.match(page, new RegExp(text));
   assert.match(page, /aria-live="polite"/);
   assert.match(css, /@media/);
 });

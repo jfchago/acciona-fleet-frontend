@@ -125,7 +125,7 @@ export default function CarFleetRequestsPage() {
     setFeedback({ kind: 'loading', message: 'Guardando cambios…' });
     try {
       const result = await updateRequest(draft);
-      if (result.kind !== 'success') { setFeedback(result.kind === 'conflict' ? { kind: 'conflict', message: 'La solicitud cambió en otra sesión. Recarga para comparar antes de guardar.' } : result.kind === 'permission' ? { kind: 'permission', message: 'No tienes permiso para editar esta solicitud.' } : { kind: 'failure', message: 'No se pudo guardar. Conservamos tus cambios para reintentar.' }); return; }
+    if (result.kind !== 'success') { setFeedback(result.kind === 'conflict' ? { kind: 'conflict', message: 'La solicitud cambió en otra sesión. Recarga para comparar antes de guardar.' } : result.kind === 'permission' ? { kind: 'permission', message: 'No tienes permiso para editar esta solicitud.' } : { kind: 'failure', message: `${result.message} Conservamos tus cambios para reintentar.` }); return; }
       setRequests(current => current.map(request => request.id === draft.id ? result.item : request));
       setDraft(null); setEditingId(null); setFeedback({ kind: 'success', message: 'Solicitud guardada correctamente.' });
     } catch {
