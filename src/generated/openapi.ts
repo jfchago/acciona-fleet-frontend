@@ -285,6 +285,16 @@ export interface components {
             /** @enum {string} */
             viaTCardRequested?: "A" | "B";
             vehicleClassification?: string;
+            /**
+             * @description Legacy Access boolean; -1 means true and 0 means false
+             * @enum {integer|null}
+             */
+            planMoves?: -1 | 0 | null;
+            /**
+             * @description Legacy Access boolean; -1 means true and 0 means false
+             * @enum {integer|null}
+             */
+            renewableFuel?: -1 | 0 | null;
         };
         CarFleetRequest: {
             /** Format: int64 */

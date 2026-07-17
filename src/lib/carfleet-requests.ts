@@ -22,6 +22,9 @@ const optionalNumber = (value: unknown) => {
   return Number.isFinite(normalized) ? normalized : undefined;
 };
 
+const optionalLegacyFlag = (value: number | null | undefined): -1 | 0 | undefined =>
+  value === -1 || value === 0 ? value : undefined;
+
 export const asIfMatch = (version: string) => {
   const normalized = version.trim();
   return normalized.startsWith('"') && normalized.endsWith('"') ? normalized : `"${normalized}"`;
@@ -55,6 +58,8 @@ export async function updateRequest(request: Request): Promise<UpdateResult> {
         monthlyFee: optionalNumber(request.monthlyFee),
         vehicleClassification: optionalText(request.vehicleClassification) as string | undefined,
         regSelection: optionalNumber(request.regSelection),
+        planMoves: optionalLegacyFlag(request.planMoves),
+        renewableFuel: optionalLegacyFlag(request.renewableFuel),
         costCenter: optionalText(request.costCenter) as string | undefined,
         viaTCard: optionalText(request.viaTCard) as string | undefined,
         viaTCardRequested: request.viaTCardRequested === 'A' || request.viaTCardRequested === 'B' ? request.viaTCardRequested : undefined,

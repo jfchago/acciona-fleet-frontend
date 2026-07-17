@@ -45,14 +45,15 @@ const displayValue = (request: Request, column: LegacyColumn): string | number |
 };
 
 const EDITABLE_FIELDS: Partial<Record<LegacyColumn, keyof Request>> = {
-  RegSelecction: 'regSelection', PetitionDate: 'updatedAt', SDN: 'sdn', LicencePlate: 'registration',
+  RegSelecction: 'regSelection', RenewableFuel: 'renewableFuel', PlanMoves: 'planMoves', PetitionDate: 'updatedAt', SDN: 'sdn', LicencePlate: 'registration',
   StateID: 'state', Classification: 'vehicleClassification', StartTerm: 'contractStart', EndTerm: 'contractEndDate', CancellationDate: 'cancellationDate', CostCenter: 'costCenter',
   MonthlyFee: 'monthlyFee',
 };
 
 const editableField = (column: LegacyColumn): keyof Request | undefined => EDITABLE_FIELDS[column];
 
-const isChecked = (value: string | number | boolean) => value === true || value === 1 || value === '1' || value === 'true';
+const isChecked = (value: string | number | boolean, nullMeansChecked = false) =>
+  (nullMeansChecked && (value === '' || value === null || value === undefined)) || value === true || value === 1 || value === -1 || value === '1' || value === '-1' || value === 'true';
 
 const stateLabel = (request: Request, masters: CarFleetRequestMasters | null) => {
   const state = masters?.states.find(option => option.id === request.state);
@@ -150,19 +151,21 @@ export default function CarFleetRequestsPage() {
   const renderCell = (request: Request, column: LegacyColumn) => {
     const field = editableField(column);
     const value = draft && editingId === request.id && field ? draft[field] : column === 'StateID' ? stateLabel(request, masters) : displayValue(request, column);
+    const checked = isChecked(value ?? '', column === 'RenewableFuel');
     if (editingId !== request.id || !field) {
       return column === 'RegSelecction' || column === 'RenewableFuel' || column === 'PlanMoves' || column === 'Documentation'
-        ? <input aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} type="checkbox" checked={isChecked(value ?? '')} readOnly />
+        ? <input aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} type="checkbox" checked={checked} readOnly />
         : <span>{String(value)}</span>;
     }
     if (column === 'StateID') return <select aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} value={String(draft?.state ?? '')} disabled={!masters?.states.length} onChange={event => changeField(field, event.target.value ? Number(event.target.value) : null)}><option value="">—</option>{masters?.states.map(option => <option key={option.id} value={option.id}>{option.code} · {option.description}</option>)}</select>;
     if (column === 'Classification') return <select aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} value={String(draft?.vehicleClassification ?? '')} disabled={!masters?.classifications.length} onChange={event => changeField(field, event.target.value || null)}><option value="">—</option>{masters?.classifications.map(option => <option key={option.id} value={option.value}>{option.value}</option>)}</select>;
+    if (column === 'RegSelecction' || column === 'RenewableFuel' || column === 'PlanMoves') return <input aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} type="checkbox" checked={checked} onChange={event => changeField(field, event.target.checked ? -1 : 0)} />;
     const inputType = column.includes('Date') || column.includes('Term') ? 'date' : 'text';
     return <input aria-label={`${LEGACY_COLUMN_LABELS[column]} ${request.id}`} type={inputType} value={String(value ?? '')} onChange={(event: ChangeEvent<HTMLInputElement>) => changeField(field, event.target.value)} />;
   };
 
   return <main className={styles.page}>
-    <header className={styles.header}><div><p className={styles.eyebrow}>ACCIONA · FLOTA VIVA</p><h1>Solicitudes CarFleet</h1><p className={styles.subtitle}>Espacio operativo para revisar y actualizar peticiones de vehículos.</p></div><span className={styles.live}>● Operativo</span></header>
+    <header className={styles.header}><div><p className={styles.eyebrow}>ACCIONA · CARFLEET</p><h1>Solicitudes de Vehículos</h1><p className={styles.subtitle}>Espacio operativo para revisar y actualizar peticiones de vehículos.</p></div><span className={styles.live}>● Operativo</span></header>
     <section className={styles.toolbar} aria-label="Filtros y acciones maestras"><div className={styles.tabs} role="tablist" aria-label="Visibilidad"><button role="tab" aria-selected={visibility === 'ACTIVE'} className={visibility === 'ACTIVE' ? styles.activeTab : ''} onClick={() => { setVisibility('ACTIVE'); setPage(0); }}>Activas</button><button role="tab" aria-selected={visibility === 'ALL'} className={visibility === 'ALL' ? styles.activeTab : ''} onClick={() => { setVisibility('ALL'); setPage(0); }}>Todas</button></div><label className={styles.search}>Buscar <input value={filter} maxLength={100} onChange={event => { setFilter(event.target.value); setPage(0); }} placeholder="SDN, matrícula o centro de coste" /></label><button className={styles.secondary} onClick={() => void loadRequests()}>Recargar</button></section>
     <FeedbackBanner feedback={feedback} />
     <section className={styles.workspace}>

@@ -42,6 +42,16 @@ test('loads legacy State and Spanish VehicleClasification catalogs for inline co
   assert.match(page, /draft\?\.vehicleClassification/);
 });
 
+test('preserves Access checked semantics and sends CR and PM updates', () => {
+  assert.match(page, /value === -1/);
+  assert.match(page, /column === 'RenewableFuel'/);
+  assert.match(page, /nullMeansChecked/);
+  assert.match(page, /RenewableFuel.*renewableFuel/);
+  assert.match(page, /PlanMoves.*planMoves/);
+  assert.match(client, /planMoves: optionalLegacyFlag\(request\.planMoves\)/);
+  assert.match(client, /renewableFuel: optionalLegacyFlag\(request\.renewableFuel\)/);
+});
+
 test('exposes recovery feedback and responsive/accessibility contracts', () => {
   for (const text of ['Cargando solicitudes', 'No hay solicitudes', 'No se pudo conectar', 'conflicto', 'No tienes permiso', 'guardada correctamente']) assert.match(page, new RegExp(text));
   assert.match(page, /aria-live="polite"/);
