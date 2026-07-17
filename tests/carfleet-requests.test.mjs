@@ -45,3 +45,11 @@ test('exposes recovery feedback and responsive/accessibility contracts', () => {
   assert.match(page, /aria-live="polite"/);
   assert.match(css, /@media/);
 });
+
+test('requests and navigates server-side pages instead of fixing the table to page zero', () => {
+  assert.match(page, /page, size: pageSize/);
+  assert.match(page, /setPage\(current => current - 1\)/);
+  assert.match(page, /setPage\(current => current \+ 1\)/);
+  assert.match(page, /totalElements/);
+  assert.match(page, /Paginación de solicitudes/);
+});

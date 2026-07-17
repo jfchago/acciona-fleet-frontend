@@ -67,7 +67,10 @@ function FeedbackBanner({ feedback }: { feedback: Feedback }) {
 }
 
 export default function CarFleetRequestsPage() {
+  const pageSize = 50;
   const [visibility, setVisibility] = useState<'ACTIVE' | 'ALL'>('ACTIVE');
+  const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [filter, setFilter] = useState('');
   const [requests, setRequests] = useState<Request[]>(SAMPLE_REQUESTS);
   const [selectedId, setSelectedId] = useState<number | null>(SAMPLE_REQUESTS[0].id);
@@ -80,15 +83,16 @@ export default function CarFleetRequestsPage() {
 
   const loadRequests = useCallback(async () => {
     setFeedback({ kind: 'loading', message: 'Cargando solicitudes…' });
-    const result = await api.GET('/api/v1/car-fleet-requests', { params: { query: { visibility, page: 0, size: 50, filter: filter || undefined } } });
+    const result = await api.GET('/api/v1/car-fleet-requests', { params: { query: { visibility, page, size: pageSize, filter: filter || undefined } } });
     if (result.error) {
       setFeedback({ kind: result.response.status === 403 ? 'permission' : 'failure', message: result.response.status === 403 ? 'No tienes permisos para consultar este espacio.' : 'No se pudieron cargar las solicitudes. Revisa la conexión y reintenta.' });
       return;
     }
     setRequests(result.data.items);
+    setTotalElements(result.data.totalElements);
     setSelectedId(current => result.data.items.some(item => item.id === current) ? current : (result.data.items[0]?.id ?? null));
     setFeedback(result.data.items.length ? null : { kind: 'empty', message: 'No hay solicitudes para este filtro. Prueba con “Todos” o limpia la búsqueda.' });
-  }, [filter, visibility]);
+  }, [filter, page, pageSize, visibility]);
 
   useEffect(() => {
     void loadCarFleetRequestMasters().then(setMasters).catch(() => setFeedback({ kind: 'failure', message: 'No se pudieron cargar los maestros de estado y clasificación.' }));
@@ -100,6 +104,8 @@ export default function CarFleetRequestsPage() {
     const haystack = `${request.id} ${request.sdn ?? ''} ${request.registration ?? ''} ${request.costCenter ?? ''}`.toLowerCase();
     return haystack.includes(filter.toLowerCase());
   }), [filter, requests]);
+  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
+  const loading = feedback?.kind === 'loading';
   const selected = requests.find(request => request.id === selectedId) ?? null;
 
   const selectRow = (id: number) => setSelectedId(id);
@@ -147,10 +153,10 @@ export default function CarFleetRequestsPage() {
 
   return <main className={styles.page}>
     <header className={styles.header}><div><p className={styles.eyebrow}>ACCIONA · FLOTA VIVA</p><h1>Solicitudes CarFleet</h1><p className={styles.subtitle}>Espacio operativo para revisar y actualizar peticiones de vehículos.</p></div><span className={styles.live}>● Operativo</span></header>
-    <section className={styles.toolbar} aria-label="Filtros y acciones maestras"><div className={styles.tabs} role="tablist" aria-label="Visibilidad"><button role="tab" aria-selected={visibility === 'ACTIVE'} className={visibility === 'ACTIVE' ? styles.activeTab : ''} onClick={() => setVisibility('ACTIVE')}>Activas</button><button role="tab" aria-selected={visibility === 'ALL'} className={visibility === 'ALL' ? styles.activeTab : ''} onClick={() => setVisibility('ALL')}>Todas</button></div><label className={styles.search}>Buscar <input value={filter} maxLength={100} onChange={event => setFilter(event.target.value)} placeholder="SDN, matrícula o centro de coste" /></label><button className={styles.secondary} onClick={() => void loadRequests()}>Recargar</button></section>
+    <section className={styles.toolbar} aria-label="Filtros y acciones maestras"><div className={styles.tabs} role="tablist" aria-label="Visibilidad"><button role="tab" aria-selected={visibility === 'ACTIVE'} className={visibility === 'ACTIVE' ? styles.activeTab : ''} onClick={() => { setVisibility('ACTIVE'); setPage(0); }}>Activas</button><button role="tab" aria-selected={visibility === 'ALL'} className={visibility === 'ALL' ? styles.activeTab : ''} onClick={() => { setVisibility('ALL'); setPage(0); }}>Todas</button></div><label className={styles.search}>Buscar <input value={filter} maxLength={100} onChange={event => { setFilter(event.target.value); setPage(0); }} placeholder="SDN, matrícula o centro de coste" /></label><button className={styles.secondary} onClick={() => void loadRequests()}>Recargar</button></section>
     <FeedbackBanner feedback={feedback} />
     <section className={styles.workspace}>
-      <div className={styles.tablePanel}><div className={styles.panelHeading}><div><h2>Listado legacy</h2><p>{filteredRequests.length} solicitudes · desplazamiento horizontal disponible</p></div><button className={styles.primary} onClick={() => selected && beginEdit(selected)} disabled={!selected}>Editar seleccionada</button></div><div className={styles.tableScroller} ref={tableRef} tabIndex={0} aria-label="Tabla legacy de 29 columnas, usa Mayús más rueda para desplazarte horizontalmente"><table><thead><tr>{LEGACY_COLUMNS.map(column => <th key={column} scope="col">{LEGACY_COLUMN_LABELS[column]}</th>)}</tr></thead><tbody>{filteredRequests.map(request => <tr key={request.id} className={selectedId === request.id ? styles.selectedRow : ''} tabIndex={0} aria-selected={selectedId === request.id} onClick={() => selectRow(request.id)} onDoubleClick={() => beginEdit(request)} onKeyDown={event => onRowKeyDown(event, request)}>{LEGACY_COLUMNS.map(column => <td key={column}>{renderCell(request, column)}</td>)}</tr>)}</tbody></table></div>{editingId !== null && <div className={styles.editBar} role="group" aria-label="Controles de edición"><span>Editar fila {editingId} · los cambios siguen sin guardar</span><div><button className={styles.primary} onClick={() => void save()} disabled={busy}>{busy ? 'Guardando…' : 'Guardar cambios'}</button><button className={styles.secondary} onClick={cancel} disabled={busy}>Cancelar</button></div></div>}</div>
+      <div className={styles.tablePanel}><div className={styles.panelHeading}><div><h2>Listado legacy</h2><p>{totalElements} solicitudes · página {Math.min(page + 1, totalPages)} de {totalPages}</p></div><button className={styles.primary} onClick={() => selected && beginEdit(selected)} disabled={!selected}>Editar seleccionada</button></div><div className={styles.tableScroller} ref={tableRef} tabIndex={0} aria-label="Tabla legacy de 29 columnas, usa Mayús más rueda para desplazarte horizontalmente"><table><thead><tr>{LEGACY_COLUMNS.map(column => <th key={column} scope="col">{LEGACY_COLUMN_LABELS[column]}</th>)}</tr></thead><tbody>{filteredRequests.map(request => <tr key={request.id} className={selectedId === request.id ? styles.selectedRow : ''} tabIndex={0} aria-selected={selectedId === request.id} onClick={() => selectRow(request.id)} onDoubleClick={() => beginEdit(request)} onKeyDown={event => onRowKeyDown(event, request)}>{LEGACY_COLUMNS.map(column => <td key={column}>{renderCell(request, column)}</td>)}</tr>)}</tbody></table></div><nav className={styles.pagination} aria-label="Paginación de solicitudes"><button className={styles.secondary} onClick={() => setPage(current => current - 1)} disabled={loading || page === 0}>Anterior</button><span>Página {Math.min(page + 1, totalPages)} de {totalPages}</span><button className={styles.secondary} onClick={() => setPage(current => current + 1)} disabled={loading || page + 1 >= totalPages}>Siguiente</button></nav>{editingId !== null && <div className={styles.editBar} role="group" aria-label="Controles de edición"><span>Editar fila {editingId} · los cambios siguen sin guardar</span><div><button className={styles.primary} onClick={() => void save()} disabled={busy}>{busy ? 'Guardando…' : 'Guardar cambios'}</button><button className={styles.secondary} onClick={cancel} disabled={busy}>Cancelar</button></div></div>}</div>
       <aside className={styles.detail} aria-label="Detalle de solicitud"><div className={styles.panelHeading}><div><h2>Detalle</h2><p>{selected ? (selected.petitionId ?? `Petición #${selected.id}`) : 'Selecciona una fila'}</p></div></div>{selected ? <><dl>{[['SDN', selected.sdn], ['Matrícula', selected.registration], ['Estado', selected.stateCode ?? selected.state ?? '—'], ['Inicio', selected.contractStart], ['Fin', selected.contractEndDate ?? '—'], ['Versión', selected.version]].map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd>{String(value)}</dd></div>)}</dl><div className={styles.detailActions}><p>Acciones de solicitud</p><button onClick={() => void action('retire')} disabled={busy || selected.retired}>Retirar</button><button onClick={() => void action('reinstate')} disabled={busy || !selected.retired}>Reinstaurar</button><button onClick={() => void action('duplicate')} disabled={busy}>Duplicar</button></div></> : <p className={styles.muted}>El detalle mantiene el contexto de la fila seleccionada.</p>}</aside>
     </section>
     <p className={styles.srOnly} aria-live="polite">{editingId ? `Editando la fila ${editingId}` : selected ? `Fila ${selected.id} seleccionada` : 'Ninguna fila seleccionada'}</p>
